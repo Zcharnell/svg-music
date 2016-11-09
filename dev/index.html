@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<!--[if IE 8]>         <html class="lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--><html> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+  <title></title>
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" /> -->
+  <style>
+    body {
+      margin:0;
+      padding:0;
+      overflow-x: hidden;
+    }
+    #svg1 {
+      overflow:hidden;
+    }
+    #file-area {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      background-color: #FFF;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="svg-area">
+    <div id="file-area">
+      <input type='file' id='fileUpload' onChange='changeAudio()'>
+      <audio id='audioIn' src='pop.mp3'></audio>
+      <button type="button" id="play-button">Play</button>
+      <input type="range" id="smooth-slider" onChange="smoothSliderChange()">
+    </div>
+
+    <svg width="1000" height="600" id="svg1" style="background-color: rgb(28,39,51)">
+      <!-- <circle cx="20" cy="20" r="20" fill="green" />
+      <circle cx="70" cy="70" r="20" fill="purple" />
+      <rect x="110" y="110" height="30" width="30" fill="blue" />
+      <rect x="160" y="160" height="30" width="30" fill="red" /> -->
+    </svg>
+  </div>
+<script>
+  var svgEle = document.getElementById("svg1");
+
+  var width = document.body.clientWidth;
+  var height = window.innerHeight;
+  svgEle.setAttribute('width',width);
+  svgEle.setAttribute('height',height);
+  
+  // var i = 0;
+  // setInterval(function(){
+  //   i += 50;
+  //   createShape();
+  // },25);
+  // var j = 525;
+  // setInterval(function(){
+  //  j += 50;
+  //  createShape();
+  // },25);
+
+  function createShape() {
+    var shape = getRandomShape();
+    svgEle.appendChild(shape);
+    var shapei = 1;
+    var shapeOpacityInterval = setInterval(function(){
+      shapei -= 0.01;
+      shape.setAttribute("style","opacity:"+shapei);
+      if(shapei <= 0) {
+        svgEle.removeChild(shape);
+        clearInterval(shapeOpacityInterval);
+      }
+    },50)
+  }
+
+  function getRandomShape() {
+    var rand = Math.floor(Math.random()*1);
+    switch(rand) {
+      case 0:
+        var circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
+        circle.setAttributeNS(null, "cx", i%width);
+        circle.setAttributeNS(null, "cy", i%height);
+        circle.setAttributeNS(null, "r", 15);
+        circle.setAttributeNS(null, "fill", getRandomColor());
+        return circle;
+      case 1:
+        var rect = document.createElementNS("http://www.w3.org/2000/svg","rect");
+        rect.setAttributeNS(null, "x", i%width-15);
+        rect.setAttributeNS(null, "y", i%height-15);
+        rect.setAttributeNS(null, "height", 30);
+        rect.setAttributeNS(null, "width", 30);
+        rect.setAttributeNS(null, "fill", getRandomColor());
+        return rect;
+    }
+  }
+
+  function getRandomColor() {
+    var rand = Math.floor(Math.random()*5);
+    switch(rand) {
+      case 0:
+        return 'yellow';
+      case 1:
+        return 'blue';
+      case 2:
+        return 'red';
+      case 3:
+        return 'green';
+      case 4:
+        return '#DDDDFF';
+    }
+  }
+
+  function createNonrandomShape(x,y,radius) {
+    if(!y) {
+      y = height;
+    }
+    var shape = document.createElementNS("http://www.w3.org/2000/svg","circle");
+        shape.setAttributeNS(null, "cx", x);
+        shape.setAttributeNS(null, "cy", y);
+        shape.setAttributeNS(null, "r", radius);
+        shape.setAttributeNS(null, "fill", "blue");
+    svgEle.appendChild(shape);
+    return shape;
+    // var shapei = 1;
+    // var shapeOpacityInterval = setInterval(function(){
+    //   shapei -= 0.01;
+    //   shape.setAttribute("style","opacity:"+shapei);
+    //   if(shapei <= 0) {
+    //     svgEle.removeChild(shape);
+    //     clearInterval(shapeOpacityInterval);
+    //   }
+    // },50)
+  }
+
+
+
+
+
+  //Audio
+  var visual = null;
+  var shapes = [];
+  var lastFrequency = [[]];
+  var numberLastFrequencies = 5;
+  var maxNumberLastFrequencies = 10;
+  var highestFrequency = 0;
+  var audio = document.getElementById('audioIn');
+  document.getElementById('smooth-slider').value = numberLastFrequencies;
+  document.getElementById('smooth-slider').min = 0;
+  document.getElementById('smooth-slider').max = maxNumberLastFrequencies;
+
+  function changeAudio() {
+    if(visual) {
+      visual.stop();
+    }
+    document.getElementById('audioIn').src = document.getElementById('fileUpload').files[0].name;
+    initLastFrequencyArrays();
+    console.log(document.getElementById('fileUpload').files[0]);
+    // console.log(document.getElementById('colorSelect').value);
+    // console.log(document.getElementById('fileUpload').files[0].name);
+    // document.getElementById('fileUpload').value = '';
+  }
+
+  function smoothSliderChange() {
+    var sliderValue = parseInt(document.getElementById('smooth-slider').value);
+    numberLastFrequencies = sliderValue;
+    console.log(sliderValue,numberLastFrequencies);
+  }
+  
+  function initLastFrequencyArrays() {
+    for(var i=0; i<maxNumberLastFrequencies; i++) {
+      lastFrequency[i] = [];
+    }
+  }
+
+
+  var renderers = {
+    'visWindow': (function() {
+      var barsArr = [],
+        initialized = false,
+        bars,
+        count,
+        width,
+        maxHeight = height;
+
+      // var height = 0;
+
+      var init = function(config) {
+        count = config.count;
+        width = config.width;
+        createShapes(count);
+        var barWidth = (width/count) >> 0;
+        // height = config.height;
+        // bars = document.getElementById('bars');
+        initLastFrequencyArrays();
+        initialized = true;
+      };
+      var max = 256;
+
+      var createShapes = function(count) {
+        for(var i=0; i<count; i++) { 
+          shapes[i] = createNonrandomShape(6+i*10,0,6);
+        }
+      }
+
+      var setLastFrequencies = function(index,frequency) {
+        for(var i=maxNumberLastFrequencies-1; i>0; i--) {
+          lastFrequency[i][index] = lastFrequency[i-1][index] || 0;
+        }
+        lastFrequency[0][index] = frequency;
+      }
+
+      var getLastFrequencies = function(index) {
+        var sum = 0;
+        for(var i=0; i<numberLastFrequencies; i++) {
+          sum += lastFrequency[i][index] || 0;
+        }
+        return sum;
+      }
+
+      var renderFrame = function(frequencyData) {
+        // console.log('render');
+        var freqData = '';
+        // var myNode = document.getElementById("bars");
+        // while (myNode.firstChild) {
+        //     myNode.removeChild(myNode.firstChild);
+        // }
+        // barsArr = [];
+        var barWidth = (width/count) >> 0;
+        console.log(numberLastFrequencies);
+        for(var i=0; i<count; i++) {
+          if(frequencyData[i] >= 0) {
+            var curFrequency = (frequencyData[i] + getLastFrequencies(i)) / (numberLastFrequencies+1);
+
+            shapes[i].setAttribute('cy',height-(curFrequency/256*maxHeight));
+
+            setLastFrequencies(i,frequencyData[i]);
+            // for(var j=numberLastFrequencies-2; j>=0; j--) {
+            //   lastFrequency[j+1][i] = lastFrequency[j][i];
+            // }
+            // lastFrequency[0][i] = frequencyData[i];
+            // var nunode = document.createElement('div');
+            // nunode.classList.add('bar');
+            // nunode.style.width = barWidth + 'px';
+            // nunode.style.left = ((barWidth+2) * i) + 'px';
+            // nunode.style.background = barColor;
+            // barsArr.push(nunode);
+            // bars.appendChild(nunode);
+          }
+        }
+        // for(var i = 0; i < barsArr.length; i++) {
+        //   var bar = barsArr[i];
+        //   bar.style.height = ((frequencyData[i]/max)*height + 'px');
+        //   freqData += '[' + frequencyData[i] + '],';
+        // }
+        // console.log(highestFrequency);
+      };
+
+
+      return {
+        init: init,
+        isInitialized: function() {
+          return initialized;
+        },
+        renderFrame: renderFrame
+      }
+    })()
+  }
+
+  function Visualization(config) {
+    var audio,
+      audioStream,
+      analyser,
+      source,
+      audioCtx,
+      canvasCtx,
+      frequencyData,
+      running = false,
+      renderer = config.renderer,
+      width = config.width || 1200,
+      height = config.height || 600,
+      fftSize = 256;
+
+    var init = function() {
+      audio = document.getElementById('audioIn');
+      audioCtx = new AudioContext();
+      analyser = audioCtx.createAnalyser();
+      source =  audioCtx.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      analyser.fftSize = fftSize;
+      frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      renderer.init({
+        count: analyser.frequencyBinCount,
+        width: width,
+        height: height
+      });
+    };
+    this.start = function() {
+      audio.play();
+      running = true;
+      renderFrame();
+      console.log('Start!');
+    };
+    this.stop = function() {
+      running = false;
+      audio.pause();
+    };
+    this.setRenderer = function(r) {
+      if (!r.isInitialized()) {
+        r.init({
+          count: analyser.frequencyBinCount,
+          width: width,
+          height: height
+        });
+      } 
+      renderer = r;
+    };
+    this.isPlaying = function() {
+      return running;
+    }
+
+    var renderFrame = function() {
+      analyser.getByteFrequencyData(frequencyData);
+      renderer.renderFrame(frequencyData);
+      // console.log('renderframe');
+      if (running) {
+        requestAnimationFrame(renderFrame);
+      }
+    };
+
+    init();
+
+  };
+
+  document.getElementById("play-button").onclick = (function() {
+    // var visWindow = this;
+    // var id = visWindow.parentNode.id;
+    var rend = renderers['visWindow'];
+
+      if (!visual) {
+        visual = new Visualization({renderer: rend });
+      }
+      visual.setRenderer(rend);
+      if (visual.isPlaying()) {
+        visual.stop();
+        // visWindow.style.backgroundColor = 'rgba(255,255,255,0.5)';
+      } else {
+        visual.start();
+        // visWindow.style.backgroundColor = 'rgba(0,0,0,0)';
+      }
+    // lastVisWindowParentId = id;
+    // lastVisWindow = visWindow;
+  });
+</script>
+</body>
+</html>
