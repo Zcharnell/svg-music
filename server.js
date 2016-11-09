@@ -5,6 +5,7 @@ var express = require("express"),
     // methodOverride = require('method-override'),
     hostname = process.env.HOSTNAME || 'localhost',
     port = process.env.PORT || 8080;
+var server = require('http').createServer(app);
 
 app.get("/", function (req, res) {
   res.redirect("/index.html");
@@ -33,11 +34,15 @@ app.get("/", function (req, res) {
 // app.use(bodyParser.urlencoded({
 //   extended: true
 // }));
+app.set('port', (process.env.PORT || 8080));
 app.use(express.static(__dirname + '/dev'));
 // app.use(errorHandler({
 //   dumpExceptions: true,
 //   showStack: true
 // }));
 
-console.log("Simple static server listening at http://" + hostname + ":" + port);
-app.listen(port, hostname);
+// console.log("Simple static server listening at http://" + hostname + ":" + port);
+// app.listen(port, hostname);
+server.listen(app.get('port'), function() {
+  console.log('Node app is running on port', app.get('port'));
+});
