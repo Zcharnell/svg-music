@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-  <title></title>
+  <title>SVG Music Visualizer</title>
   <meta name="keywords" content="" />
   <meta name="description" content="" />
 
@@ -35,9 +35,10 @@
   <div id="svg-area">
     <div id="file-area">
       <input type='file' id='fileUpload' onChange='changeAudio()'>
-      <audio id='audioIn' src='pop.mp3'></audio>
+      <audio id='audioIn' src='banksstwo.wav'></audio>
       <button type="button" id="play-button">Play</button>
-      <input type="range" id="smooth-slider" onChange="smoothSliderChange()">
+      <!-- For setting how many previous frequencies should be used to average out the current frequency -->
+      <!-- <input type="range" id="smooth-slider" onChange="smoothSliderChange()"> -->
     </div>
 
     <svg width="1000" height="600" id="svg1" style="background-color: rgb(28,39,51)">
@@ -146,14 +147,16 @@
   //Audio
   var visual = null;
   var shapes = [];
+  var fftSize = 256;
   var lastFrequency = [[]];
-  var numberLastFrequencies = 5;
+  var numberLastFrequencies = 10;
+  var minNumberLastFrequencies = 5;
   var maxNumberLastFrequencies = 10;
   var highestFrequency = 0;
   var audio = document.getElementById('audioIn');
-  document.getElementById('smooth-slider').value = numberLastFrequencies;
-  document.getElementById('smooth-slider').min = 0;
-  document.getElementById('smooth-slider').max = maxNumberLastFrequencies;
+  // document.getElementById('smooth-slider').value = numberLastFrequencies;
+  // document.getElementById('smooth-slider').min = minNumberLastFrequencies;
+  // document.getElementById('smooth-slider').max = maxNumberLastFrequencies;
 
   function changeAudio() {
     if(visual) {
@@ -161,9 +164,6 @@
     }
     document.getElementById('audioIn').src = document.getElementById('fileUpload').files[0].name;
     initLastFrequencyArrays();
-    console.log(document.getElementById('fileUpload').files[0]);
-    // console.log(document.getElementById('colorSelect').value);
-    // console.log(document.getElementById('fileUpload').files[0].name);
     // document.getElementById('fileUpload').value = '';
   }
 
@@ -179,35 +179,25 @@
     }
   }
 
+  function createShapes(count) {
+    for(var i=0; i<count; i++) { 
+      shapes[i] = createNonrandomShape(6+i*10,0,6);
+    }
+  }
+
 
   var renderers = {
     'visWindow': (function() {
-      var barsArr = [],
-        initialized = false,
-        bars,
-        count,
-        width,
-        maxHeight = height;
-
-      // var height = 0;
+        var initialized = false;
+        var count;
+        var maxHeight = height-20;
 
       var init = function(config) {
         count = config.count;
-        width = config.width;
         createShapes(count);
-        var barWidth = (width/count) >> 0;
-        // height = config.height;
-        // bars = document.getElementById('bars');
         initLastFrequencyArrays();
         initialized = true;
       };
-      var max = 256;
-
-      var createShapes = function(count) {
-        for(var i=0; i<count; i++) { 
-          shapes[i] = createNonrandomShape(6+i*10,0,6);
-        }
-      }
 
       var setLastFrequencies = function(index,frequency) {
         for(var i=maxNumberLastFrequencies-1; i>0; i--) {
@@ -225,41 +215,14 @@
       }
 
       var renderFrame = function(frequencyData) {
-        // console.log('render');
-        var freqData = '';
-        // var myNode = document.getElementById("bars");
-        // while (myNode.firstChild) {
-        //     myNode.removeChild(myNode.firstChild);
-        // }
-        // barsArr = [];
-        var barWidth = (width/count) >> 0;
-        console.log(numberLastFrequencies);
         for(var i=0; i<count; i++) {
-          if(frequencyData[i] >= 0) {
-            var curFrequency = (frequencyData[i] + getLastFrequencies(i)) / (numberLastFrequencies+1);
-
-            shapes[i].setAttribute('cy',height-(curFrequency/256*maxHeight));
-
-            setLastFrequencies(i,frequencyData[i]);
-            // for(var j=numberLastFrequencies-2; j>=0; j--) {
-            //   lastFrequency[j+1][i] = lastFrequency[j][i];
-            // }
-            // lastFrequency[0][i] = frequencyData[i];
-            // var nunode = document.createElement('div');
-            // nunode.classList.add('bar');
-            // nunode.style.width = barWidth + 'px';
-            // nunode.style.left = ((barWidth+2) * i) + 'px';
-            // nunode.style.background = barColor;
-            // barsArr.push(nunode);
-            // bars.appendChild(nunode);
-          }
+          //Get the average of the current frequency and the last n frequencies
+          var curFrequency = (frequencyData[i] + getLastFrequencies(i)) / (numberLastFrequencies+1);
+          //Set the y position of the shape to the value of the current frequency, based on the height of the window
+          shapes[i].setAttribute('cy',height-(curFrequency/256*maxHeight));
+          //Update the array of last frequencies
+          setLastFrequencies(i,frequencyData[i]);
         }
-        // for(var i = 0; i < barsArr.length; i++) {
-        //   var bar = barsArr[i];
-        //   bar.style.height = ((frequencyData[i]/max)*height + 'px');
-        //   freqData += '[' + frequencyData[i] + '],';
-        // }
-        // console.log(highestFrequency);
       };
 
 
@@ -274,8 +237,7 @@
   }
 
   function Visualization(config) {
-    var audio,
-      audioStream,
+    var audioStream,
       analyser,
       source,
       audioCtx,
@@ -288,7 +250,6 @@
       fftSize = 256;
 
     var init = function() {
-      audio = document.getElementById('audioIn');
       audioCtx = new AudioContext();
       analyser = audioCtx.createAnalyser();
       source =  audioCtx.createMediaElementSource(audio);
@@ -306,7 +267,6 @@
       audio.play();
       running = true;
       renderFrame();
-      console.log('Start!');
     };
     this.stop = function() {
       running = false;
@@ -329,7 +289,6 @@
     var renderFrame = function() {
       analyser.getByteFrequencyData(frequencyData);
       renderer.renderFrame(frequencyData);
-      // console.log('renderframe');
       if (running) {
         requestAnimationFrame(renderFrame);
       }
@@ -339,24 +298,16 @@
 
   };
 
-  document.getElementById("play-button").onclick = (function() {
-    // var visWindow = this;
-    // var id = visWindow.parentNode.id;
-    var rend = renderers['visWindow'];
+  var rend = renderers['visWindow'];
+  visual = new Visualization({renderer: rend });
+  visual.setRenderer(rend);
 
-      if (!visual) {
-        visual = new Visualization({renderer: rend });
-      }
-      visual.setRenderer(rend);
-      if (visual.isPlaying()) {
-        visual.stop();
-        // visWindow.style.backgroundColor = 'rgba(255,255,255,0.5)';
-      } else {
-        visual.start();
-        // visWindow.style.backgroundColor = 'rgba(0,0,0,0)';
-      }
-    // lastVisWindowParentId = id;
-    // lastVisWindow = visWindow;
+  document.getElementById("play-button").onclick = (function() {
+    if (visual.isPlaying() && !audio.paused) {
+      visual.stop();
+    } else {
+      visual.start();
+    }
   });
 </script>
 </body>
