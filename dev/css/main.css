@@ -1,0 +1,39 @@
+body {
+  margin:0;
+  padding:0;
+  overflow-x: hidden;
+  background-color: #F8F8F8;
+}
+
+#svg1 {
+  overflow:hidden;
+}
+
+#heading {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  background-color: #FFF;
+  /*opacity: 1;*/
+  font-family: sans-serif;
+}
+#heading h1 {
+  display: inline-block;
+  margin: 0;
+  padding: 5px 0 5px 10px;
+  font-family: sans-serif;
+}
+
+#heading span {
+  color: #999;
+}
+
+#heading .audio-area {
+  float: right;
+  padding-top: 10px;
+}
+
+#desc {
+  max-width: 960px;
+  margin: 0 auto;
+}
